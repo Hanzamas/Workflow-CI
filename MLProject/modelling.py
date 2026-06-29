@@ -1,6 +1,8 @@
 """
 modelling.py — Workflow-CI/MLProject/modelling.py
-Versi CI dari training script — dijalankan oleh GitHub Actions via MLflow Project
+Dijalankan oleh GitHub Actions via: mlflow run MLProject/
+CATATAN: Jangan panggil mlflow.set_experiment() atau mlflow.start_run()
+         karena MLflow CLI sudah membuat run aktif secara otomatis.
 """
 
 import os
@@ -37,8 +39,9 @@ def main(data_path: str, epochs: int):
     print(f"[CI] Data path : {data_path}")
     print(f"[CI] Epochs    : {epochs}")
 
-    mlflow.set_experiment("rice-classification-ci")
-    mlflow.tensorflow.autolog(log_models=True)
+    # autolog saja — JANGAN set_experiment() atau start_run()
+    # mlflow run CLI sudah membuat active run otomatis
+    mlflow.tensorflow.autolog(log_models=False)
 
     train_dir = os.path.join(data_path, "train")
     val_dir   = os.path.join(data_path, "val")
@@ -52,32 +55,35 @@ def main(data_path: str, epochs: int):
         class_mode="categorical", shuffle=False
     )
 
-    with mlflow.start_run():
-        model = build_model((*IMG_SIZE, 3), NUM_CLASSES)
-        model.compile(
-            optimizer="adam",
-            loss="categorical_crossentropy",
-            metrics=["accuracy"],
-        )
-        history = model.fit(train_gen, validation_data=val_gen, epochs=epochs)
+    # Training langsung — run sudah aktif dari CLI
+    model = build_model((*IMG_SIZE, 3), NUM_CLASSES)
+    model.compile(
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+    history = model.fit(train_gen, validation_data=val_gen, epochs=epochs)
 
-        mlflow.log_params({
-            "data_path"  : data_path,
-            "epochs"     : epochs,
-            "img_size"   : str(IMG_SIZE),
-            "batch_size" : BATCH_SIZE,
-        })
+    # Log params dan artifacts ke run aktif
+    mlflow.log_params({
+        "data_path"  : data_path,
+        "epochs"     : epochs,
+        "img_size"   : str(IMG_SIZE),
+        "batch_size" : BATCH_SIZE,
+    })
 
-        # Simpan model sebagai artifact
-        model.save("rice_model_ci")
-        mlflow.log_artifact("rice_model_ci")
+    # Simpan model
+    model.save("rice_model_ci.keras")
+    mlflow.log_artifact("rice_model_ci.keras")
 
-        print(f"[CI] Done — val_accuracy: {history.history['val_accuracy'][-1]:.4f}")
+    val_acc = history.history['val_accuracy'][-1]
+    mlflow.log_metric("final_val_accuracy", val_acc)
+    print(f"[CI] Done — val_accuracy: {val_acc:.4f}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_path", type=str, default="MLProject/data_split")
-    parser.add_argument("--epochs",    type=int, default=5)
+    parser.add_argument("--data_path", type=str, default="data_split")
+    parser.add_argument("--epochs",    type=int, default=2)
     args = parser.parse_args()
     main(args.data_path, args.epochs)

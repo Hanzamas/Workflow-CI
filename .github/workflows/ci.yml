@@ -42,7 +42,7 @@ jobs:
           mlflow run MLProject/ \
             -e main \
             --env-manager local \
-            -P data_path=MLProject/data_split \
+            -P data_path=data_split \
             -P epochs=2
 
       # 6. Upload model artifact ke GitHub

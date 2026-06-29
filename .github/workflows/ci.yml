@@ -1,0 +1,48 @@
+name: CI - Train Rice Classification Model
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "MLProject/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+jobs:
+  train-model:
+    name: Train Model with MLflow Project
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout kode
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Python
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.7"
+
+      # 3. Install MLflow & dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mlflow==2.19.0 tensorflow==2.15.0 numpy pandas pillow scikit-learn
+
+      # 4. Jalankan MLflow Project
+      - name: Run MLflow Project
+        run: |
+          mlflow run MLProject/ \
+            -e main \
+            --env-manager local \
+            -P data_path=MLProject/data_split \
+            -P epochs=5
+
+      # 5. Simpan artifact (model) ke GitHub
+      - name: Upload Model Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rice-model-artifact
+          path: rice_model_ci/
+          retention-days: 30

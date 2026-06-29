@@ -1,0 +1,16 @@
+# Workflow-CI: MLProject + GitHub Actions
+# Kriteria 3: Membangun Workflow CI
+
+name: rice-classification
+
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    parameters:
+      data_path: {type: string, default: "MLProject/data_split"}
+      epochs:    {type: float,  default: 5}
+    command: >
+      python MLProject/modelling.py
+        --data_path {data_path}
+        --epochs {epochs}

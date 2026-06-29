@@ -52,7 +52,7 @@ def main(data_path: str, epochs: int):
         class_mode="categorical", shuffle=False
     )
 
-    with mlflow.start_run(run_name="ci_run"):
+    with mlflow.start_run():
         model = build_model((*IMG_SIZE, 3), NUM_CLASSES)
         model.compile(
             optimizer="adam",

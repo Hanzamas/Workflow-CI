@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - "MLProject/**"
-      - "create_test_data.py"
+      - "split_dataset.py"
       - ".github/workflows/ci.yml"
   workflow_dispatch:
 
@@ -29,14 +29,25 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install mlflow==2.19.0 tensorflow==2.18.0 numpy pandas pillow scikit-learn matplotlib
+          pip install kaggle mlflow==2.19.0 tensorflow==2.18.0 numpy pandas pillow scikit-learn
 
-      # 4. Generate synthetic dataset untuk CI (pengganti dataset asli yang 75GB)
-      - name: Generate Synthetic Test Dataset
+      # 4. Download Rice Image Dataset dari Kaggle (real dataset)
+      - name: Download Dataset from Kaggle
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_TOKEN }}
         run: |
-          python create_test_data.py
+          mkdir -p MLProject/data_raw
+          kaggle datasets download -d muratkokludataset/rice-image-dataset -p MLProject/data_raw --unzip
+          echo "Dataset downloaded!"
+          ls MLProject/data_raw/
 
-      # 5. Jalankan MLflow Project
+      # 5. Split dataset jadi train/val/test (200 gambar/kelas)
+      - name: Split Dataset
+        run: |
+          python split_dataset.py
+          echo "Split selesai!"
+
+      # 6. Jalankan MLflow Project (training dengan real data)
       - name: Run MLflow Project
         run: |
           mlflow run MLProject/ \
@@ -45,10 +56,10 @@ jobs:
             -P data_path=data_split \
             -P epochs=2
 
-      # 6. Upload model artifact ke GitHub
+      # 7. Upload model artifact ke GitHub
       - name: Upload Model Artifact
         uses: actions/upload-artifact@v4
         with:
           name: rice-model-artifact
-          path: rice_model_ci/
+          path: rice_model_ci.keras
           retention-days: 30

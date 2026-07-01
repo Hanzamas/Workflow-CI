@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - "MLProject/**"
-      - "split_dataset.py"
       - ".github/workflows/ci.yml"
   workflow_dispatch:
 
@@ -15,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout kode
+      # 1. Checkout kode (termasuk data_split hasil preprocessing K1)
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -25,32 +24,23 @@ jobs:
         with:
           python-version: "3.12.7"
 
-      # 3. Install semua dependensi
+      # 3. Install dependensi
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "kaggle==1.6.17" mlflow==2.19.0 tensorflow==2.18.0 numpy pandas pillow scikit-learn
+          pip install mlflow==2.19.0 tensorflow==2.18.0 numpy pandas pillow scikit-learn
 
-      # 4. Download Rice Image Dataset dari Kaggle (real dataset)
-      - name: Download Dataset from Kaggle
-        env:
-          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
-          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      # 4. Verifikasi data_split dari preprocessing K1
+      - name: Verify Preprocessed Dataset
         run: |
-          mkdir -p MLProject/data_raw ~/.kaggle
-          echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
-          chmod 600 ~/.kaggle/kaggle.json
-          kaggle datasets download -d muratkokludataset/rice-image-dataset -p MLProject/data_raw --unzip
-          echo "Download selesai!"
-          ls MLProject/data_raw/
+          echo "Memverifikasi dataset hasil preprocessing K1..."
+          ls MLProject/data_split/
+          echo "Train:"
+          ls MLProject/data_split/train/ | head -5
+          echo "Val:"
+          ls MLProject/data_split/val/ | head -5
 
-      # 5. Split dataset jadi train/val/test (200 gambar/kelas)
-      - name: Split Dataset
-        run: |
-          python split_dataset.py
-          echo "Split selesai!"
-
-      # 6. Jalankan MLflow Project (training dengan real data)
+      # 5. Jalankan MLflow Project dengan dataset hasil preprocessing K1
       - name: Run MLflow Project
         run: |
           mlflow run MLProject/ \
@@ -59,7 +49,7 @@ jobs:
             -P data_path=data_split \
             -P epochs=2
 
-      # 7. Upload model artifact ke GitHub
+      # 6. Upload model artifact
       - name: Upload Model Artifact
         uses: actions/upload-artifact@v4
         with:

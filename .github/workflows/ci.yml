@@ -29,16 +29,19 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install kaggle mlflow==2.19.0 tensorflow==2.18.0 numpy pandas pillow scikit-learn
+          pip install "kaggle==1.6.17" mlflow==2.19.0 tensorflow==2.18.0 numpy pandas pillow scikit-learn
 
       # 4. Download Rice Image Dataset dari Kaggle (real dataset)
       - name: Download Dataset from Kaggle
         env:
-          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
         run: |
-          mkdir -p MLProject/data_raw
+          mkdir -p MLProject/data_raw ~/.kaggle
+          echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
           kaggle datasets download -d muratkokludataset/rice-image-dataset -p MLProject/data_raw --unzip
-          echo "Dataset downloaded!"
+          echo "Download selesai!"
           ls MLProject/data_raw/
 
       # 5. Split dataset jadi train/val/test (200 gambar/kelas)
